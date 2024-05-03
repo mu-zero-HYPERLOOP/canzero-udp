@@ -44,15 +44,23 @@ impl UdpNetworkScanner {
     }
 
     pub fn start(&self) {
-        let task_handle_lock = self
+        let mut task_handle_lock = self
             .task_handle
             .lock()
             .expect("Failed to acquire task_handle lock for UdpNetworkScanner");
         if task_handle_lock.is_none() {
-            tokio::spawn(Self::broadcast_scanner_task(
+            *task_handle_lock = Some(tokio::spawn(Self::broadcast_scanner_task(
                 self.socket.clone(),
                 self.tx.clone(),
-            ));
+            )).abort_handle());
+        }
+    }
+
+    pub fn stop(&self) {
+        let mut task_handle_lock = self.task_handle.lock().expect("Failed to acquire task_handle lock for UdpNetworkScanner");
+        if let Some(abort_handle) = task_handle_lock.as_ref() {
+            abort_handle.abort();
+            *task_handle_lock = None;
         }
     }
 
@@ -76,7 +84,6 @@ impl UdpNetworkScanner {
         }
     }
 
-    pub fn stop(&self) {}
 
     async fn broadcast_scanner_task(socket: Arc<UdpSocket>, tx: mpsc::Sender<NetworkDescription>) {
         let mut rx_buffer = [0u8; 1024];
