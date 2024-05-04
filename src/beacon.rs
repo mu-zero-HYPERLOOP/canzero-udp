@@ -1,5 +1,6 @@
 use std::{
-    hash::{DefaultHasher, Hash, Hasher}, sync::{Arc, Mutex}, time::Instant
+    sync::{Arc, Mutex},
+    time::Instant,
 };
 
 use build_time::build_time_local;
@@ -17,7 +18,7 @@ pub struct UdpNetworkBeacon {
     timebase: Instant,
     socket: Arc<UdpSocket>,
     task_handle: Arc<Mutex<Option<tokio::task::AbortHandle>>>,
-    config_hash : u64,
+    config_hash: u64,
 }
 
 impl UdpNetworkBeacon {
@@ -25,7 +26,7 @@ impl UdpNetworkBeacon {
         tcp_service_port: u16,
         timebase: Instant,
         beacon_name: &str,
-        config : NetworkRef,
+        config: NetworkRef,
     ) -> std::io::Result<UdpNetworkBeacon> {
         let socket = tokio::net::UdpSocket::bind(&format!("0.0.0.0:{BROADCAST_PORT}"))
             .await
@@ -37,9 +38,7 @@ impl UdpNetworkBeacon {
             })?;
         socket.set_broadcast(true)?; //<- Check if actually required
 
-        let mut hasher = DefaultHasher::new();
-        config.hash(&mut hasher);
-        let config_hash = hasher.finish();
+        let config_hash = config.portable_hash();
 
         Ok(UdpNetworkBeacon {
             beacon_name: beacon_name.to_owned(),
@@ -86,7 +85,7 @@ impl UdpNetworkBeacon {
         service_port: u16,
         socket: Arc<UdpSocket>,
         timebase: Instant,
-        config_hash : u64
+        config_hash: u64,
     ) {
         loop {
             loop {
@@ -121,7 +120,7 @@ impl UdpNetworkBeacon {
                         service_name,
                         service_port,
                         config_hash,
-                        build_time : build_time_local!().to_owned(),
+                        build_time: build_time_local!().to_owned(),
                         time_since_sor,
                         server_name,
                     };

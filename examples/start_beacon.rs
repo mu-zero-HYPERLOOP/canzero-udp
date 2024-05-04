@@ -4,7 +4,7 @@ use canzero_udp::beacon::UdpNetworkBeacon;
 
 #[tokio::main]
 async fn main() {
-    let beacon = UdpNetworkBeacon::create(100, Instant::now(), "test-beacon")
+    let beacon = UdpNetworkBeacon::create(100, Instant::now(), "test-beacon", config)
         .await
         .unwrap();
 
