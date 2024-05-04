@@ -113,7 +113,7 @@ impl UdpNetworkScanner {
 
             let local_timebase = Instant::now();
             let Ok(frame) = bincode::deserialize::<UdpFrame>(&rx_buffer[..packet_size]) else {
-                cprintln!("<yellow>UdpNetworkScanner: Received ill formed frame [ignored]</yellow>");
+                cprintln!("<yellow>UdpNetworkScanner: Received ill formed frame from {} [ignored]</yellow>", {udp_server_addr});
                 continue;
             };
             let UdpFrame::NDF(ndf) = frame else {
