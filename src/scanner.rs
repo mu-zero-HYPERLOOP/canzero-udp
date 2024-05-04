@@ -1,8 +1,5 @@
 use std::{
-    collections::HashSet,
-    net::SocketAddr,
-    sync::Arc,
-    time::{Duration, Instant},
+    collections::HashSet, net::SocketAddr, sync::Arc, time::{Duration, Instant}
 };
 
 use color_print::cprintln;
@@ -96,6 +93,7 @@ impl UdpNetworkScanner {
         }))
         .expect("Failed to serialize udp discovery HelloFrame");
 
+
         let mut discovered_networks: HashSet<SocketAddr> = HashSet::new();
         loop {
             interval.tick().await;
@@ -130,6 +128,8 @@ impl UdpNetworkScanner {
                 let nd = NetworkDescription {
                     server_addr: udp_server_addr.ip(),
                     server_name: ndf.server_name,
+                    config_hash : ndf.config_hash,
+                    build_time : ndf.build_time,
                     service_port: ndf.service_port,
                     timebase: local_timebase - ndf.time_since_sor,
                 };

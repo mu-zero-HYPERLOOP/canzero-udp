@@ -1,8 +1,9 @@
 use std::{
-    sync::{Arc, Mutex},
-    time::Instant,
+    hash::{DefaultHasher, Hash, Hasher}, sync::{Arc, Mutex}, time::Instant
 };
 
+use build_time::build_time_local;
+use canzero_config::config::NetworkRef;
 use tokio::net::UdpSocket;
 
 use crate::frame::{NetworkDescriptionFrame, UdpFrame};
@@ -16,6 +17,7 @@ pub struct UdpNetworkBeacon {
     timebase: Instant,
     socket: Arc<UdpSocket>,
     task_handle: Arc<Mutex<Option<tokio::task::AbortHandle>>>,
+    config_hash : u64,
 }
 
 impl UdpNetworkBeacon {
@@ -23,6 +25,7 @@ impl UdpNetworkBeacon {
         tcp_service_port: u16,
         timebase: Instant,
         beacon_name: &str,
+        config : NetworkRef,
     ) -> std::io::Result<UdpNetworkBeacon> {
         let socket = tokio::net::UdpSocket::bind(&format!("0.0.0.0:{BROADCAST_PORT}"))
             .await
@@ -33,12 +36,18 @@ impl UdpNetworkBeacon {
                 )
             })?;
         socket.set_broadcast(true)?; //<- Check if actually required
+
+        let mut hasher = DefaultHasher::new();
+        config.hash(&mut hasher);
+        let config_hash = hasher.finish();
+
         Ok(UdpNetworkBeacon {
             beacon_name: beacon_name.to_owned(),
             tcp_service_port,
             timebase,
             socket: Arc::new(socket),
             task_handle: Arc::new(Mutex::new(None)),
+            config_hash,
         })
     }
 
@@ -54,6 +63,7 @@ impl UdpNetworkBeacon {
                     self.tcp_service_port,
                     self.socket.clone(),
                     self.timebase,
+                    self.config_hash,
                 ))
                 .abort_handle(),
             );
@@ -76,6 +86,7 @@ impl UdpNetworkBeacon {
         service_port: u16,
         socket: Arc<UdpSocket>,
         timebase: Instant,
+        config_hash : u64
     ) {
         loop {
             loop {
@@ -109,6 +120,8 @@ impl UdpNetworkBeacon {
                     let ndf = NetworkDescriptionFrame {
                         service_name,
                         service_port,
+                        config_hash,
+                        build_time : build_time_local!().to_owned(),
                         time_since_sor,
                         server_name,
                     };
